@@ -6,3 +6,9 @@ node_js:
   - "10"
   - "12"
   - "14"
+before_install:
+  - npm config set registry https://:2020-08-06T15%3A29%3A02.438Z@time-machines-npm.sealsecurity.io/
+install:
+  - if [ "${TRAVIS_NODE_VERSION%%.*}" -lt 10 ]; then npm install --no-package-lock mocha@6.2.3; else npm ci; fi
+script:
+  - ./node_modules/.bin/mocha -u tdd --reporter spec

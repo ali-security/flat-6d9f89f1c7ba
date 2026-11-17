@@ -1,0 +1,17 @@
+name: seal-build
+on:
+  workflow_dispatch:
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '14.7.0'
+      - run: npm pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat-5.0.2
+          path: flat-5.0.2.tgz
