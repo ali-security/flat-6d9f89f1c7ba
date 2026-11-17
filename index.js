@@ -57,6 +57,11 @@ function unflatten (target, opts) {
   const delimiter = opts.delimiter || '.'
   const overwrite = opts.overwrite || false
   const transformKey = opts.transformKey || keyIdentity
+  const arrayLimit = (
+    typeof opts.arrayLimit === 'number' &&
+    !isNaN(opts.arrayLimit)
+  ) ? opts.arrayLimit
+    : 1000
   const result = {}
 
   const isbuffer = isBuffer(target)
@@ -66,15 +71,27 @@ function unflatten (target, opts) {
 
   // safely ensure that the key is
   // an integer.
+  // numeric keys above `arrayLimit` are kept as object keys,
+  // so that keys like `a.4294967294` cannot create huge sparse arrays
   function getkey (key) {
     const parsedKey = Number(key)
 
     return (
       isNaN(parsedKey) ||
       key.indexOf('.') !== -1 ||
-      opts.object
+      opts.object ||
+      parsedKey > arrayLimit
     ) ? key
       : parsedKey
+  }
+
+  // check whether writing `key` into `array` would grow it past
+  // `arrayLimit` other than by appending at its current end, so that
+  // chained keys (a.1000, a.2001, a.3002, ...) cannot build huge arrays
+  function exceedsArrayLimit (array, key) {
+    const index = Number(key)
+
+    return index % 1 === 0 && index > arrayLimit && index > array.length
   }
 
   function addKeys (keyPrefix, recipient, target) {
@@ -141,6 +158,10 @@ function unflatten (target, opts) {
           typeof key2 === 'number' &&
           !opts.object ? [] : {}
         )
+      } else if (Array.isArray(recipient[key1]) &&
+        exceedsArrayLimit(recipient[key1], key2)) {
+        // fall back to an object instead of growing a huge sparse array
+        recipient[key1] = Object.assign({}, recipient[key1])
       }
 
       recipient = recipient[key1]
